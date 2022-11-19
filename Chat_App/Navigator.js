@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, useColorScheme} from 'react-native';
 import {createStackNavigator} from '@react-navigation/stack';
+
 import {
   NavigationContainer,
   DefaultTheme,
@@ -17,9 +18,9 @@ import Chat from './Screens/Chat';
 import ChatGroup from './Screens/ChatGroup';
 import AddGroup from './Screens/AddGroup';
 import Search from './Screens/Search';
+import SettingChat from './Screens/SettingScreen/SettingChat';
 
 const Stack = createStackNavigator();
-
 const StackAuth = () => {
   return (
     <Stack.Navigator initialRouteName="login">
@@ -51,6 +52,12 @@ const StackHome = () => {
         options={{headerShown: false}}
       />
       <Stack.Screen
+        name="SettingChat"
+        component={SettingChat}
+        options={{headerShown: false}}
+      />
+
+      <Stack.Screen
         name="AddGroup"
         component={AddGroup}
         options={{headerShown: false}}
@@ -65,6 +72,7 @@ const StackHome = () => {
         component={Search}
         options={{headerShown: false}}
       />
+
       <Stack.Screen name="Account">
         {props => <Account {...props} />}
       </Stack.Screen>

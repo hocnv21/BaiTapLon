@@ -4,14 +4,24 @@ import {useNavigation} from '@react-navigation/native';
 import {CheckBox, Avatar} from '@rneui/themed';
 import {useState} from 'react';
 
-export default function UserCard(props) {
-  const [check2, setCheck2] = useState(false);
-  const {chatWith, room, onPress} = props;
+export default function UserCardAddGroup(props) {
+  const {chatWith, onPress, onDelete, room, check} = props;
   const navigation = useNavigation();
+  const [check2, setCheck2] = useState(false);
+
+  function handlePress() {
+    if (check2 === true) {
+      onDelete();
+      setCheck2(false);
+    }
+    if (check2 === false) {
+      onPress();
+      setCheck2(true);
+    }
+  }
+
   return (
-    <TouchableOpacity
-      activeOpacity={1}
-      onPress={() => navigation.navigate('Chat', {chatWith: chatWith, room})}>
+    <TouchableOpacity activeOpacity={1} onPress={() => handlePress()}>
       <View
         style={{
           flexDirection: 'row',
@@ -35,7 +45,9 @@ export default function UserCard(props) {
             height: '100%',
           }}>
           <View style={{justifyContent: 'center'}}>
-            <Text style={{fontSize: 25, fontWeight: 'bold'}}>
+            <Text
+              numberOfLines={1}
+              style={{fontSize: 25, fontWeight: 'bold', width: 235}}>
               {chatWith.displayName}
             </Text>
           </View>
@@ -44,13 +56,14 @@ export default function UserCard(props) {
             style={{
               margin: 15,
             }}>
-            {/* <CheckBox
+            <CheckBox
               center
               checkedIcon="dot-circle-o"
               uncheckedIcon="circle-o"
               checked={check2}
-              onPress={() => setCheck2(!check2)}
-            /> */}
+              disabled={true}
+              //   onPress={() => setCheck2(!check2)}
+            />
           </View>
         </View>
       </View>

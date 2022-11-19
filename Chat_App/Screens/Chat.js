@@ -8,7 +8,11 @@ import {
   Image,
   PermissionsAndroid,
   Platform,
+  Dimensions,
+  Linking,
 } from 'react-native';
+import Clipboard from '@react-native-community/clipboard';
+
 import {
   GiftedChat,
   Bubble,
@@ -18,7 +22,7 @@ import {
 } from 'react-native-gifted-chat';
 import ImageView from 'react-native-image-viewing';
 import {Appbar, Avatar, IconButton} from 'react-native-paper';
-
+import Video from 'react-native-video';
 import {Icon} from '@rneui/themed';
 import firestore from '@react-native-firebase/firestore';
 import 'react-native-get-random-values';
@@ -39,16 +43,31 @@ export default function Chat({route, navigation}) {
   const [selectedImageView, setSeletedImageView] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
-  const [fileResponse, setFileResponse] = useState([]);
+  const typeDocument = [
+    DocumentPicker.types.csv,
+    DocumentPicker.types.doc,
+    DocumentPicker.types.docx,
+    DocumentPicker.types.pdf,
+    DocumentPicker.types.plainText,
+    DocumentPicker.types.ppt,
+    DocumentPicker.types.pptx,
+    DocumentPicker.types.xls,
+    DocumentPicker.types.xlsx,
+    DocumentPicker.types.zip,
+  ];
+  const typeVideo = [DocumentPicker.types.video];
 
   const docid = uid > user.uid ? user.uid + '-' + uid : uid + '-' + user.uid;
+  // const docid = room.id;
 
   const messageRef = firestore()
     .collection('chatrooms')
     .doc(docid)
     .collection('messages')
     .orderBy('createdAt', 'desc');
-
+  /**
+   *  get ALL message
+   */
   useEffect(() => {
     // getAllMessages()
 
@@ -74,6 +93,10 @@ export default function Chat({route, navigation}) {
       unSubscribe();
     };
   }, [messageRef, uid]);
+
+  /**
+   *  create new Chat Room
+   */
   useEffect(() => {
     (async () => {
       if (!room) {
@@ -178,17 +201,15 @@ export default function Chat({route, navigation}) {
     return /[.]/.exec(filename) ? /[^.]+$/.exec(filename) : undefined;
   };
 
-  const handleDocumentSelection = async () => {
+  const handleDocumentSelection = async type => {
     return new Promise(async (resolve, reject) => {
       try {
         const result = await DocumentPicker.pick({
-          type: [DocumentPicker.types.allFiles],
+          type: type,
         });
-
-        console.log('resulting file: ' + result);
-        console.log('string result? ' + JSON.stringify(result));
-        console.log('Filename at best: ' + result[0].name);
-
+        // console.log('resulting file: ' + result);
+        // console.log('string result? ' + JSON.stringify(result));
+        // console.log('Filename at best: ' + result[0].name);
         let fileRef = storage()
           .ref()
           .child(`/fileChatRooms/${docid}/${result[0].name}`);
@@ -197,16 +218,12 @@ export default function Chat({route, navigation}) {
         const blob = await response.blob();
         await fileRef.put(blob);
         var dwnload = await fileRef.getDownloadURL();
-
         console.log('Download file: ' + dwnload);
         resolve({
           dwnload,
           fileName: result[0].name,
           fileType: result[0].type,
         });
-
-        global.pdfFile = dwnload;
-        console.log('pdf file: ' + JSON.stringify(global.pdfFile));
       } catch (e) {
         if (DocumentPicker.isCancel(e)) {
           console.log('User cancelled!');
@@ -217,7 +234,9 @@ export default function Chat({route, navigation}) {
     });
   };
   async function onSendFile() {
-    const {dwnload, fileName, fileType} = await handleDocumentSelection();
+    const {dwnload, fileName, fileType} = await handleDocumentSelection(
+      typeDocument,
+    );
 
     const mymsg = {
       _id: Date.now(),
@@ -235,7 +254,35 @@ export default function Chat({route, navigation}) {
     const payload = {
       ...mymsg,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      text: '',
+    };
+    console.log({payload});
+    firestore()
+      .collection('chatrooms')
+      .doc(docid)
+      .collection('messages')
+      .add(payload);
+  }
+  async function onSendVideo() {
+    const {dwnload, fileName, fileType} = await handleDocumentSelection(
+      typeVideo,
+    );
+
+    const mymsg = {
+      _id: Date.now(),
+      sentBy: user.uid,
+      sentTo: uid,
+      video: dwnload,
+      fileName: fileName,
+      fileType: fileType,
+      createdAt: new Date(),
+      user: {
+        _id: user.uid,
+      },
+    };
+
+    const payload = {
+      ...mymsg,
+      createdAt: firestore.FieldValue.serverTimestamp(),
     };
     console.log({payload});
     firestore()
@@ -284,6 +331,15 @@ export default function Chat({route, navigation}) {
     });
   };
 
+  function setLastMessage(messageArray, Docid) {
+    const lastMessage = messageArray[0];
+
+    firestore()
+      .collection('chatrooms')
+      .doc(Docid)
+      .update({lastMessage: lastMessage});
+  }
+
   const onSend = messageArray => {
     console.log({user});
     const msg = messageArray[0];
@@ -299,12 +355,9 @@ export default function Chat({route, navigation}) {
       ...mymsg,
       createdAt: firestore.FieldValue.serverTimestamp(),
     };
-    const lastMessage = messageArray[0];
+
     console.log({payload});
-    firestore()
-      .collection('chatrooms')
-      .doc(docid)
-      .update({lastMessage: lastMessage});
+    setLastMessage(messageArray, docid);
 
     firestore()
       .collection('chatrooms')
@@ -330,7 +383,6 @@ export default function Chat({route, navigation}) {
     const payload = {
       ...mymsg,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      text: '',
     };
     console.log({payload});
     firestore()
@@ -349,6 +401,37 @@ export default function Chat({route, navigation}) {
       </Send>
     );
   }
+  function renderMessageImage(props) {
+    return (
+      <View style={{borderRadius: 15, padding: 2}}>
+        <TouchableOpacity
+          onPress={() => {
+            setModalVisible(true);
+            setSeletedImageView(props.currentMessage.image);
+          }}>
+          <Image
+            resizeMode="contain"
+            style={{
+              width: 200,
+              height: 200,
+              padding: 6,
+              borderRadius: 15,
+              resizeMode: 'cover',
+            }}
+            source={{uri: props.currentMessage.image}}
+          />
+          {selectedImageView ? (
+            <ImageView
+              imageIndex={0}
+              visible={modalVisible}
+              onRequestClose={() => setModalVisible(false)}
+              images={[{uri: selectedImageView}]}
+            />
+          ) : null}
+        </TouchableOpacity>
+      </View>
+    );
+  }
   function scrollToBottomComponent() {
     return (
       <View style={styles.bottomComponentContainer}>
@@ -356,17 +439,90 @@ export default function Chat({route, navigation}) {
       </View>
     );
   }
-
+  // function onDeleteMessage(messageIdToDelete) {
+  //   setMessages(previousState =>
+  //      previousState.messages.filter(
+  //       message => message.id !== messageIdToDelete,
+  //     ),
+  //   );
+  // }
+  const onLongPress = (context, pressed_message) => {
+    if (pressed_message.text !== '') {
+      console.log(context, pressed_message);
+      const options = ['Copy', 'Delete', 'Cancel'];
+      const cancelButtonIndex = options.length;
+      context
+        .actionSheet()
+        .showActionSheetWithOptions(
+          {options, cancelButtonIndex},
+          buttonIndex => {
+            switch (buttonIndex) {
+              case 0:
+                Clipboard.setString(pressed_message.text);
+                break;
+              case 1:
+                // onDeleteMessage(pressed_message._id);
+                break;
+            }
+          },
+        );
+    }
+  };
   return (
     <>
       <Appbar.Header>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+
         <Appbar.Content title={chatWith.displayName} />
+        <Appbar.Action
+          icon="information"
+          onPress={() =>
+            navigation.navigate('SettingChat', {chatWith: chatWith})
+          }
+        />
       </Appbar.Header>
       <View style={{flex: 1}}>
         <GiftedChat
           messages={messages}
+          renderUsernameOnMessage={true}
           scrollToBottomComponent={scrollToBottomComponent}
+          // wrapInSafeArea={false}
+          // isKeyboardInternallyHandled={false}
+          renderChatEmpty={() => {
+            return (
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  transform: [{scaleY: -1}],
+                }}>
+                <Image
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                  }}
+                  source={{uri: chatWith.photoURL}}
+                />
+                <Text
+                  style={{
+                    fontSize: 30,
+                    fontWeight: 'bold',
+                    marginBottom: 30,
+                  }}>
+                  {chatWith.displayName}
+                </Text>
+                <Text style={{}}>
+                  Bạn và {chatWith.displayName} chưa có cuộc trò chuyện nào
+                </Text>
+                <Text>
+                  Hãy gửi đến nhau những lời nói yêu thương nhất đi nào 😎😎
+                </Text>
+              </View>
+            );
+          }}
+          scrollToBottom={true}
           user={{
             _id: user.uid,
           }}
@@ -374,6 +530,7 @@ export default function Chat({route, navigation}) {
           renderAvatar={() => (
             <Avatar.Image size={36} source={{uri: chatWith.photoURL}} />
           )}
+          onLongPress={onLongPress}
           renderActions={props => {
             return (
               <>
@@ -393,6 +550,11 @@ export default function Chat({route, navigation}) {
                   icon={() => <Avatar.Icon size={30} icon="paperclip" />}
                   onPressActionButton={onSendFile}
                 />
+                <Actions
+                  {...props}
+                  icon={() => <Avatar.Icon size={30} icon="camera" />}
+                  onPressActionButton={onSendVideo}
+                />
               </>
             );
           }}
@@ -404,6 +566,14 @@ export default function Chat({route, navigation}) {
                 wrapperStyle={{
                   right: {
                     backgroundColor: '#0068FF',
+                  },
+                  left: {
+                    backgroundColor: '#E4E6EB',
+                  },
+                }}
+                textStyle={{
+                  left: {
+                    color: '#000000',
                   },
                 }}
               />
@@ -427,14 +597,13 @@ export default function Chat({route, navigation}) {
               return (
                 <View
                   style={{
-                    padding: 5,
                     margin: 5,
                     borderRadius: 10,
                   }}>
                   <TouchableOpacity
-                    // onPress={() =>
-                    //   checkPermission(props.currentMessage.fileUri)
-                    // }
+                    onPress={() =>
+                      Linking.openURL(props.currentMessage.fileUri)
+                    }
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
@@ -456,33 +625,45 @@ export default function Chat({route, navigation}) {
               );
             }
           }}
-          renderMessageImage={props => {
+          renderMessageImage={renderMessageImage}
+          renderMessageVideo={props => {
             return (
               <View style={{borderRadius: 15, padding: 2}}>
                 <TouchableOpacity
-                  onPress={() => {
-                    setModalVisible(true);
-                    setSeletedImageView(props.currentMessage.image);
-                  }}>
-                  <Image
-                    resizeMode="contain"
+                  activeOpacity={1}
+                  // onPress={() => {
+                  //   setModalVisible(true);
+                  //   setSeletedImageView(props.currentMessage.video);
+                  // }}
+                >
+                  <Video
+                    paused={false}
+                    repeat={false}
+                    // controls={true}
+                    resizeMode="cover"
                     style={{
-                      width: 200,
-                      height: 200,
+                      width: Dimensions.get('window').width / 1.4,
+                      height: Dimensions.get('window').width / 1.4,
                       padding: 6,
                       borderRadius: 15,
-                      resizeMode: 'cover',
                     }}
-                    source={{uri: props.currentMessage.image}}
+                    source={{uri: props.currentMessage.video}}
                   />
-                  {selectedImageView ? (
-                    <ImageView
-                      imageIndex={0}
-                      visible={modalVisible}
-                      onRequestClose={() => setModalVisible(false)}
-                      images={[{uri: selectedImageView}]}
+                  {/* {selectedImageView ? (
+                    <Video
+                      paused={false}
+                      repeat={false}
+                      controls={true}
+                      resizeMode="cover"
+                      style={{
+                        width: Dimensions.get('window').width / 1.4,
+                        height: Dimensions.get('window').width / 1.4,
+                        padding: 6,
+                        borderRadius: 15,
+                      }}
+                      source={{uri: selectedImageView}}
                     />
-                  ) : null}
+                  ) : null} */}
                 </TouchableOpacity>
               </View>
             );
@@ -503,7 +684,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textFile: {
-    color: '#ffff',
+    fontWeight: 'bold',
     fontSize: 15,
+    textDecorationLine: 'underline',
   },
 });

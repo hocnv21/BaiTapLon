@@ -44,7 +44,6 @@ function Register({navigation}) {
         email: result.user.email,
         uid: result.user.uid,
         photoURL: image,
-        status: 'online',
       });
     } catch (err) {
       console.log({err});

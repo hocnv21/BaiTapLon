@@ -37,8 +37,9 @@ export default function Search({navigation}) {
       .where('uid', '!=', user.uid)
       .get();
     const result = querySanp.docs.map(docSnap => docSnap.data());
-    console.log(result);
+    // console.log(result);
     setAllUsers(result);
+    console.log(unFilteredRooms);
   };
 
   React.useEffect(() => {
@@ -75,7 +76,7 @@ export default function Search({navigation}) {
             renderItem={({item}) => {
               return (
                 <UserCard
-                  item={item}
+                  chatWith={item}
                   room={unFilteredRooms.find(room =>
                     room.participants.includes(item.uid),
                   )}
