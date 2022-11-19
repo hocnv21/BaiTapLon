@@ -1,4 +1,6 @@
 apply plugin: "com.android.application"
+apply plugin: 'com.google.gms.google-services'
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
 import com.android.build.OutputFile
 import org.apache.tools.ant.taskdefs.condition.Os
@@ -77,15 +79,13 @@ import org.apache.tools.ant.taskdefs.condition.Os
  *   extraPackagerArgs: []
  * ]
  */
-
+ 
 project.ext.react = [
     enableHermes: true,  // clean and rebuild if changing
 ]
 
 apply from: "../../node_modules/react-native/react.gradle"
-// apply plugin: "com.android.application"
-// apply plugin: 'com.google.gms.google-services' 
-// apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
 
 /**
  * Set this to true to create two separate APKs instead of one:

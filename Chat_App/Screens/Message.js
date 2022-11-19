@@ -5,15 +5,58 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import IonsIcon from 'react-native-vector-icons/Ionicons';
-import React from 'react';
+import React, {useContext} from 'react';
+import {Appbar, Avatar, IconButton} from 'react-native-paper';
 import MessageCard from './MessageCard';
+import GlobalContext from '../context/Context';
+import firestore from '@react-native-firebase/firestore';
+import AppContext from '../AppContext';
 
 export default function Message({navigation}) {
-  const pressChat = () => {
-    navigation.navigate('Chat');
+  const {user} = React.useContext(AppContext);
+  const {rooms, setRooms, setUnfilteredRooms} = useContext(AppContext);
+  const [users, setUsers] = React.useState(null);
+
+  const getUsers = async () => {
+    const querySanp = await firestore()
+      .collection('users')
+      .where('uid', '!=', user.uid)
+      .get();
+    const allusers = querySanp.docs.map(docSnap => docSnap.data());
+
+    setUsers(allusers);
+  };
+
+  const getChat = async () => {
+    const chatsQuery = await firestore()
+      .collection('chatrooms')
+      .where('participantArray', 'array-contains', user.email)
+      .get();
+    const parsedChats = chatsQuery.docs.map(doc => ({
+      ...doc.data(),
+      id: doc.id,
+      chatWith: doc.data().participants.find(p => p.email !== user.email),
+    }));
+    setUnfilteredRooms(parsedChats);
+
+    setRooms(parsedChats.filter(doc => doc.lastMessage));
+    console.log(parsedChats);
+    console.log('roomms', rooms);
+    console.log('chatWith', rooms[0].chatWith);
+  };
+
+  React.useEffect(() => {
+    getChat();
+  }, []);
+
+  const pressChat = item => {
+    navigation.navigate('Chat', {
+      chatWith: item,
+    });
   };
   return (
     <View style={styles.container}>
@@ -27,6 +70,7 @@ export default function Message({navigation}) {
           backgroundColor: '#0068FF',
         }}>
         <TouchableOpacity
+          onPress={() => navigation.navigate('Search')}
           activeOpacity={1}
           style={{
             flex: 1,
@@ -34,8 +78,7 @@ export default function Message({navigation}) {
             height: 40,
             flexDirection: 'row',
             alignItems: 'center',
-          }}
-          onPress={() => navigation.navigate('Contacts')}>
+          }}>
           <IonsIcon
             activeOpacity={1}
             name="search-outline"
@@ -47,17 +90,27 @@ export default function Message({navigation}) {
 
         <View>
           <MaterialCommunityIcons.Button
+            onPress={() => navigation.navigate('AddGroup')}
             backgroundColor={'#0068FF'}
             size={35}
-            name="plus"
+            name="account-multiple-plus"
           />
         </View>
       </View>
 
       <View>
-        <ScrollView>
-          <MessageCard onPress={pressChat} />
-        </ScrollView>
+        <FlatList
+          data={rooms}
+          renderItem={({room}) => {
+            return (
+              <MessageCard
+                // chatWith={room.chatWith}
+                description={room.lastMessage.text}
+              />
+            );
+          }}
+          keyExtractor={room => room.id}
+        />
       </View>
     </View>
   );
@@ -66,6 +119,5 @@ export default function Message({navigation}) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffff',
-    paddingTop: 35,
   },
 });

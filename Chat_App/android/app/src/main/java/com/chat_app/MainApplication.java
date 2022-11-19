@@ -12,12 +12,8 @@ import com.facebook.soloader.SoLoader;
 import com.chat_app.newarchitecture.MainApplicationReactNativeHost;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import androidx.multidex.MultiDexApplication; 
-import io.invertase.firebase.app.ReactNativeFirebaseAppPackage;
-import io.invertase.firebase.auth.ReactNativeFirebaseAuthPackage;
-import io.invertase.firebase.auth.RNFirebaseAuthPackage;
 
-public class MainApplication extends MultiDexApplication implements ReactApplication {
+public class MainApplication extends Application implements ReactApplication {
 
   private final ReactNativeHost mReactNativeHost =
       new ReactNativeHost(this) {
@@ -51,16 +47,6 @@ public class MainApplication extends MultiDexApplication implements ReactApplica
     } else {
       return mReactNativeHost;
     }
-  }
-  @Override
-  protected List<ReactPackage> getPackages() {
-    return Arrays.<ReactPackage>asList(
-        new MainReactPackage(),
-        new RNFirebasePackage(),
-        new RNFirebaseAuthPackage(), // <-- Add this line
-        new ReactNativeFirebaseAppPackage(),
-        new ReactNativeFirebaseAuthPackage(),
-    );
   }
 
   @Override

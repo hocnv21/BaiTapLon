@@ -1,12 +1,17 @@
-/* eslint-disable react-native/no-inline-styles */
-import {StatusBar} from 'expo-status-bar';
+import {StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native';
 import React from 'react';
-import {StyleSheet, Text, View, Image, TouchableOpacity} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
+import {CheckBox, Avatar} from '@rneui/themed';
+import {useState} from 'react';
 
-export default function MessageCard(props) {
-  const {chatWith, description, onPress} = props;
+export default function UserCard(props) {
+  const [check2, setCheck2] = useState(false);
+  const {chatWith, room} = props;
+  const navigation = useNavigation();
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={() => navigation.navigate('Chat', {chatWith: chatWith, room})}>
       <View
         style={{
           flexDirection: 'row',
@@ -14,12 +19,10 @@ export default function MessageCard(props) {
           alignItems: 'center',
           borderBottomWidth: 1,
           borderBottomColor: 'gray',
+          backgroundColor: '#ffff',
         }}>
         <View style={{padding: 10, marginRight: 10}}>
-          <Image
-            style={{width: 70, height: 70, borderRadius: 50}}
-            source={{uri: chatWith.photoURL}}
-          />
+          <Avatar size={50} rounded source={{uri: chatWith.photoURL}} />
         </View>
 
         <View
@@ -35,28 +38,19 @@ export default function MessageCard(props) {
             <Text style={{fontSize: 25, fontWeight: 'bold'}}>
               {chatWith.displayName}
             </Text>
-            <Text style={{fontWeight: 'bold', fontSize: 15}}>
-              {description}
-            </Text>
           </View>
 
           <View
             style={{
               margin: 15,
             }}>
-            <View style={{}}>
-              <Text>2 phút</Text>
-            </View>
-
-            <View
-              style={{
-                marginTop: 10,
-                backgroundColor: '#EE5500',
-                borderRadius: 10,
-                alignItems: 'center',
-              }}>
-              <Text style={{color: '#ffff'}}>1</Text>
-            </View>
+            {/* <CheckBox
+              center
+              checkedIcon="dot-circle-o"
+              uncheckedIcon="circle-o"
+              checked={check2}
+              onPress={() => setCheck2(!check2)}
+            /> */}
           </View>
         </View>
       </View>

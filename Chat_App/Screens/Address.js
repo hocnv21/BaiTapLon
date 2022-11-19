@@ -46,9 +46,9 @@ function Address() {
           />
         </View>
       </View>
-      <NavigationContainer independent={true}>
-        <TopTabs />
-      </NavigationContainer>
+      {/* <NavigationContainer independent={true}> */}
+      <TopTabs />
+      {/* </NavigationContainer> */}
     </View>
   );
 }
@@ -65,6 +65,5 @@ export default Address;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffff',
-    paddingTop: 35,
   },
 });

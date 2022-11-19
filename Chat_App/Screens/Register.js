@@ -2,34 +2,33 @@ import React, {useState} from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
-  KeyboardAvoidingView,
   StyleSheet,
+  Image,
+  Alert,
 } from 'react-native';
-import {Button} from 'react-native-paper';
+import {Avatar, TextInput} from 'react-native-paper';
 import CustomButton from './CustomButton';
-// import {MaterialCommunityIcons} from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {launchImageLibrary} from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-export default function Register({navigation}) {
+function Register({navigation}) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [image, setImage] = useState(null);
-  const [showNext, setShowNext] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#00ff00" />;
   }
-  const userSignup = async () => {
+  const onUserRegister = async () => {
     setLoading(true);
     if (!email || !password || !image || !name) {
       alert('please add all the field');
@@ -41,29 +40,39 @@ export default function Register({navigation}) {
         password,
       );
       firestore().collection('users').doc(result.user.uid).set({
-        name: name,
+        displayName: name,
         email: result.user.email,
         uid: result.user.uid,
-        pic: image,
+        photoURL: image,
         status: 'online',
       });
-      setLoading(false);
     } catch (err) {
-      alert('something went wrong');
+      console.log({err});
+      Alert.alert('Something went wrong', err.code);
+    } finally {
+      setLoading(false);
     }
   };
-  const pickImageAndUpload = () => {
-    launchImageLibrary({quality: 0.5}, fileobj => {
+  const pickImageAndUpload = async () => {
+    const fileResult = await launchImageLibrary({
+      quality: 0.5,
+      includeBase64: true,
+    });
+    if (fileResult.assets.length) {
+      const fileObj = fileResult.assets[0];
       const uploadTask = storage()
         .ref()
-        .child(`/userprofile/${Date.now()}`)
-        .putFile(fileobj.uri);
+        .child(`/userprofile/${Date.now()}.png`)
+        .putString(fileObj.base64, 'base64');
+
       uploadTask.on(
         'state_changed',
         snapshot => {
           var progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          if (progress == 100) alert('image uploaded');
+          if (progress === 100) {
+            alert('image uploaded');
+          }
         },
         error => {
           alert('error uploading image');
@@ -74,35 +83,30 @@ export default function Register({navigation}) {
           });
         },
       );
-    });
+    }
   };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        onPress={pickImageAndUpload}
+        onPress={() => pickImageAndUpload()}
         // eslint-disable-next-line react-native/no-inline-styles
         style={{
           marginTop: 30,
           borderRadius: 120,
           width: 120,
           height: 120,
-          backgroundColor: '#ffff',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-        {/* {!image ? (
-          <MaterialCommunityIcons
-            name="camera-plus"
-            // color={""}
-            size={45}
-          />
+        {!image ? (
+          <Avatar.Icon icon="camera" size={45} />
         ) : (
           <Image
             source={{uri: image}}
             style={{width: '100%', height: '100%', borderRadius: 120}}
           />
-        )} */}
+        )}
       </TouchableOpacity>
 
       <TextInput
@@ -111,6 +115,9 @@ export default function Register({navigation}) {
         style={styles.input}
       />
       <TextInput
+        label="Email"
+        mode="outlined"
+        dense={true}
         placeholder="email"
         onChangeText={setEmail}
         style={styles.input}
@@ -132,7 +139,7 @@ export default function Register({navigation}) {
         title="Register"
         type="PRIMARY"
         disabled={!email || !password || !name || !image || !passwordConfirm}
-        onPress={() => userSignup()}
+        onPress={() => onUserRegister()}
       />
 
       <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -146,6 +153,8 @@ export default function Register({navigation}) {
     </View>
   );
 }
+
+export default Register;
 
 const styles = StyleSheet.create({
   container: {
@@ -169,6 +178,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginVertical: 5,
     borderColor: '#e8e8e8',
-    padding: 10,
   },
 });

@@ -1,6 +1,5 @@
 import {
   StyleSheet,
-  Text,
   View,
   Image,
   Button,
@@ -15,8 +14,8 @@ import auth from '@react-native-firebase/auth';
 import {TextInput} from 'react-native-paper';
 
 export default function Login({navigation}) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('bbb@gmail.com');
+  const [password, setPassword] = useState('112233');
   const [loading, setLoading] = useState(false);
   if (loading) {
     return <ActivityIndicator size="large" color="#00ff00" />;
@@ -30,6 +29,7 @@ export default function Login({navigation}) {
     }
     try {
       const result = await auth().signInWithEmailAndPassword(email, password);
+      console.log(result);
       setLoading(false);
     } catch (err) {
       alert('something went wrong');
@@ -42,11 +42,13 @@ export default function Login({navigation}) {
       <TextInput
         placeholder="email"
         onChangeText={setEmail}
+        value={email}
         style={styles.input}
       />
       <TextInput
         placeholder="password"
         onChangeText={text => setPassword(text)}
+        value={password}
         secureTextEntry={true}
         style={styles.input}
       />
