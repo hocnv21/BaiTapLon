@@ -30,7 +30,7 @@ export default function Message({navigation}) {
 
   const getChat = async () => {
     const chatsQuery = await firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .where('participantArray', 'array-contains', user.email)
       .get();
 

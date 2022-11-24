@@ -1,14 +1,52 @@
-import {StyleSheet, Text, View, TouchableOpacity} from 'react-native';
-import React from 'react';
+import {StyleSheet, Text, View, TouchableOpacity, FlatList} from 'react-native';
+import React, {useContext, useState} from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import IonsIcon from 'react-native-vector-icons/Ionicons';
-import {createMaterialTopTabNavigator} from '@react-navigation/material-top-tabs';
-import {NavigationContainer} from '@react-navigation/native';
-
-import Friend from './Friend';
+import AppContext from '../AppContext';
+import SearchBarComponent from '../Components/SearchBarComponent';
+import 'react-native-get-random-values';
+import {nanoid} from 'nanoid';
+import firestore from '@react-native-firebase/firestore';
+import GlobalContext from '../context/Context';
+import UserCard from '../Components/UserCard';
+import {Appbar, Avatar, Button, TextInput} from 'react-native-paper';
 import Group from './Group';
 
-function Address() {
+function Address({navigation}) {
+  const [searchKey, setSearchKey] = useState('');
+  const {user} = React.useContext(AppContext);
+
+  const [allUsers, setAllUsers] = React.useState(null);
+
+  const {unFilteredRooms, rooms} = useContext(GlobalContext);
+
+  const docid = nanoid();
+  const getUsers = async () => {
+    const querySanp = await firestore()
+      .collection('users')
+      .where('displayName', '==', searchKey)
+      .get();
+    const result = querySanp.docs.map(docSnap => docSnap.data());
+    if (searchKey.length === 0) {
+      getAllUsers();
+    }
+    console.log(result);
+    setAllUsers(result);
+  };
+  const getAllUsers = async () => {
+    const querySanp = await firestore()
+      .collection('users')
+      .where('uid', '!=', user.uid)
+      .get();
+    const result = querySanp.docs.map(docSnap => docSnap.data());
+    // console.log(result);
+    setAllUsers(result);
+    console.log(unFilteredRooms);
+  };
+
+  React.useEffect(() => {
+    getAllUsers();
+  }, []);
   return (
     <View style={styles.container}>
       <View
@@ -21,6 +59,7 @@ function Address() {
           backgroundColor: '#0068FF',
         }}>
         <TouchableOpacity
+          onPress={() => navigation.navigate('Search')}
           activeOpacity={1}
           style={{
             flex: 1,
@@ -46,24 +85,33 @@ function Address() {
           />
         </View>
       </View>
-      {/* <NavigationContainer independent={true}> */}
-      <TopTabs />
-      {/* </NavigationContainer> */}
+      <View style={{marginTop: 100}}>
+        <Text>Gợi ý</Text>
+      </View>
+      <View style={styles.list}>
+        <FlatList
+          data={allUsers}
+          renderItem={({item}) => {
+            return (
+              <UserCard
+                chatWith={item}
+                room={unFilteredRooms.find(room =>
+                  room.participants.includes(item.uid),
+                )}
+              />
+            );
+          }}
+          keyExtractor={item => item.uid}
+        />
+      </View>
     </View>
   );
 }
-const Tab = createMaterialTopTabNavigator();
-function TopTabs() {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name="Home" component={Friend} />
-      <Tab.Screen name="Settings" component={Group} />
-    </Tab.Navigator>
-  );
-}
+
 export default Address;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#ffff',
   },
+  list: {},
 });

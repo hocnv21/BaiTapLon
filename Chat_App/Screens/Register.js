@@ -115,7 +115,6 @@ function Register({navigation}) {
       />
       <TextInput
         label="Email"
-        mode="outlined"
         dense={true}
         placeholder="email"
         onChangeText={setEmail}

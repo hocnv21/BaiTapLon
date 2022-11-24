@@ -1,12 +1,14 @@
-import {Image, StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import React from 'react';
 import {Appbar, Avatar, IconButton} from 'react-native-paper';
+import {Icon} from '@rneui/themed';
+import SettingCard from '../../Components/SettingCard';
 
 export default function SettingChat({route, navigation}) {
-  const {chatWith} = route.params;
+  const {chatWith, docid} = route.params;
   return (
     <>
-      <Appbar.Header>
+      <Appbar.Header style={{backgroundColor: '#0068FF'}}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
 
         <Appbar.Content title="Tuy Chon" />
@@ -20,6 +22,11 @@ export default function SettingChat({route, navigation}) {
             {chatWith.displayName}
           </Text>
         </View>
+        <SettingCard
+          icon="image"
+          tittle="Xem File phương tiện"
+          onPress={() => navigation.navigate('StorageScreen', {docid: docid})}
+        />
       </View>
     </>
   );

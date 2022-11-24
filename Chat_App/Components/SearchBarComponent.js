@@ -15,6 +15,7 @@ export default function SearchBarComponent({search, setSearch, keyPress}) {
           height: 50,
           justifyContent: 'center',
         }}
+        autoFocus={true}
         inputContainerStyle={{}}
         inputStyle={{fontSize: 16}}
         leftIconContainerStyle={{}}
@@ -27,7 +28,7 @@ export default function SearchBarComponent({search, setSearch, keyPress}) {
         placeholderTextColor="#888"
         cancelButtonTitle="Cancel"
         cancelButtonProps={{}}
-        onCancel={() => navigation.goBack()}
+        onCancel={() => console.log('cancel key search')}
         value={search}
       />
     </View>

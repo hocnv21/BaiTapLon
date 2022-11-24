@@ -19,6 +19,7 @@ import ChatGroup from './Screens/ChatGroup';
 import AddGroup from './Screens/AddGroup';
 import Search from './Screens/Search';
 import SettingChat from './Screens/SettingScreen/SettingChat';
+import StorageScreen from './Screens/SettingScreen/StorageScreen';
 
 const Stack = createStackNavigator();
 const StackAuth = () => {
@@ -54,6 +55,11 @@ const StackHome = () => {
       <Stack.Screen
         name="SettingChat"
         component={SettingChat}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="StorageScreen"
+        component={StorageScreen}
         options={{headerShown: false}}
       />
 

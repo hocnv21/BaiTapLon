@@ -8,6 +8,7 @@ import firestore from '@react-native-firebase/firestore';
 import GlobalContext from '../context/Context';
 import UserCard from '../Components/UserCard';
 import {Appbar, Avatar, Button, TextInput} from 'react-native-paper';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function Search({navigation}) {
   const [searchKey, setSearchKey] = useState('');
@@ -48,7 +49,7 @@ export default function Search({navigation}) {
 
   const onPressAddGroup = async () => {
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(docid)
       .set({participants: allUsers})
       .then(() => {
@@ -62,12 +63,22 @@ export default function Search({navigation}) {
         <View
           style={{
             backgroundColor: '#0068FF',
+            flexDirection: 'row',
+            alignItems: 'center',
           }}>
-          <SearchBarComponent
-            search={searchKey}
-            setSearch={setSearchKey}
-            keyPress={getUsers}
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={35}
+            color={'#ffffff'}
+            onPress={() => navigation.goBack()}
           />
+          <View style={{flex: 1, marginRight: 30}}>
+            <SearchBarComponent
+              search={searchKey}
+              setSearch={setSearchKey}
+              keyPress={getUsers}
+            />
+          </View>
         </View>
 
         <View style={styles.list}>
@@ -91,4 +102,4 @@ export default function Search({navigation}) {
   );
 }
 
-const styles = StyleSheet.create({list: {}});
+const styles = StyleSheet.create({list: {marginTop: 30}});

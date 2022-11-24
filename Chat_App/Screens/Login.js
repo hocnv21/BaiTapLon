@@ -14,7 +14,7 @@ import auth from '@react-native-firebase/auth';
 import {TextInput} from 'react-native-paper';
 
 export default function Login({navigation}) {
-  const [email, setEmail] = useState('bbb@gmail.com');
+  const [email, setEmail] = useState('hoc.nguyenviethoc@gmail.com');
   const [password, setPassword] = useState('112233');
   const [loading, setLoading] = useState(false);
   if (loading) {

@@ -95,7 +95,7 @@ export default function Search({navigation}) {
       .get();
     console.log(currenUserData);
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(docid)
       .set({
         infoGroup: {
@@ -131,7 +131,7 @@ export default function Search({navigation}) {
 
   return (
     <>
-      <Appbar.Header>
+      <Appbar.Header style={{backgroundColor: '#0068FF'}}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title="Tạo Nhóm Mới " />
       </Appbar.Header>
@@ -140,7 +140,7 @@ export default function Search({navigation}) {
           <TouchableOpacity onPress={pickImageAndUpload}>
             {!image ? (
               <Avatar.Icon
-                style={{marginRight: 10}}
+                style={{marginRight: 10, backgroundColor: '#0068FF'}}
                 size={35}
                 icon="camera-plus"
               />

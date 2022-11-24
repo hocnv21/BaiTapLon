@@ -1,16 +1,16 @@
 import {useState, useEffect, useCallback} from 'react';
 import * as React from 'react';
 import {
-  TouchableOpacity,
+  TouchableOpacity as A,
   Text,
   StyleSheet,
   View,
   Image,
-  PermissionsAndroid,
-  Platform,
   Dimensions,
   Linking,
+  Button,
 } from 'react-native';
+import {TouchableOpacity} from 'react-native-gesture-handler';
 import Clipboard from '@react-native-community/clipboard';
 
 import {
@@ -18,7 +18,10 @@ import {
   Bubble,
   InputToolbar,
   Actions,
+  MessageText,
   Send,
+  TypingIndicator,
+  Composer,
 } from 'react-native-gifted-chat';
 import ImageView from 'react-native-image-viewing';
 import {Appbar, Avatar, IconButton} from 'react-native-paper';
@@ -32,16 +35,24 @@ import DocumentPicker, {types} from 'react-native-document-picker';
 import RNFetchBlob from 'rn-fetch-blob';
 import storage from '@react-native-firebase/storage';
 import AppContext from '../AppContext';
+import {Swipeable} from 'react-native-gesture-handler';
 
 export default function Chat({route, navigation}) {
   const {user} = React.useContext(AppContext);
-
+  const [currenUser, setCurrenUser] = React.useState('');
+  const swipeableRowRef = React.useRef(Swipeable | null);
   const {chatWith, room} = route.params;
   const {uid} = chatWith;
 
   const [messages, setMessages] = useState([]);
+  const [replyMsg, setReplyMsg] = useState({
+    replyId: null,
+    replyTo: null,
+    replyText: '',
+  });
   const [selectedImageView, setSeletedImageView] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
 
   const typeDocument = [
     DocumentPicker.types.csv,
@@ -58,13 +69,24 @@ export default function Chat({route, navigation}) {
   const typeVideo = [DocumentPicker.types.video];
 
   const docid = uid > user.uid ? user.uid + '-' + uid : uid + '-' + user.uid;
+
   // const docid = room.id;
 
   const messageRef = firestore()
-    .collection('chatrooms')
+    .collection('conversations')
     .doc(docid)
     .collection('messages')
     .orderBy('createdAt', 'desc');
+
+  useEffect(() => {
+    firestore()
+      .collection('users')
+      .doc(user.uid)
+      .get()
+      .then(docSnap => {
+        setCurrenUser(docSnap.data());
+      });
+  }, [user]);
   /**
    *  get ALL message
    */
@@ -107,7 +129,7 @@ export default function Chat({route, navigation}) {
 
         try {
           await firestore()
-            .collection('chatrooms')
+            .collection('conversations')
             .doc(docid)
             .set({
               lastMessage: messages.length === 0 ? [] : messages[0],
@@ -125,82 +147,7 @@ export default function Chat({route, navigation}) {
         }
       }
     })();
-  }, []);
-
-  const checkPermission = async ({fileUri}) => {
-    // Function to check the platform
-    // If iOS then start downloading
-    // If Android then ask for permission
-
-    if (Platform.OS === 'ios') {
-      downloadImage(fileUri);
-    } else {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission Required',
-            message: 'App needs access to your storage to download Photos',
-          },
-        );
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          // Once user grant the permission start downloading
-          console.log('Storage Permission Granted.');
-          downloadImage(fileUri);
-        } else {
-          // If permission denied then show alert
-          alert('Storage Permission Not Granted');
-        }
-      } catch (err) {
-        // To handle permission related exception
-        console.warn(err);
-      }
-    }
-  };
-
-  const downloadImage = fileUri => {
-    // Main function to download the image
-
-    // To add the time suffix in filename
-    let date = new Date();
-    // Image URL which we want to download
-    let image_URL = fileUri;
-    // Getting the extention of the file
-    let ext = getExtention(image_URL);
-    ext = '.' + ext[0];
-    // Get config and fs from RNFetchBlob
-    // config: To pass the downloading related options
-    // fs: Directory path where we want our image to download
-    const {config, fs} = RNFetchBlob;
-    let PictureDir = fs.dirs.DownloadDir;
-    let options = {
-      fileCache: true,
-      addAndroidDownloads: {
-        // Related to the Android only
-        useDownloadManager: true,
-        notification: true,
-        path:
-          PictureDir +
-          '/image_' +
-          Math.floor(date.getTime() + date.getSeconds() / 2) +
-          ext,
-        description: 'Image',
-      },
-    };
-    config(options)
-      .fetch('GET', image_URL)
-      .then(res => {
-        // Showing alert after successful downloading
-        console.log('res -> ', JSON.stringify(res));
-        alert('Image Downloaded Successfully.');
-      });
-  };
-
-  const getExtention = filename => {
-    // To get the file extension
-    return /[.]/.exec(filename) ? /[^.]+$/.exec(filename) : undefined;
-  };
-
+  }, [chatWith, docid, messages, room, user.uid]);
   const handleDocumentSelection = async type => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -240,14 +187,14 @@ export default function Chat({route, navigation}) {
 
     const mymsg = {
       _id: Date.now(),
-      sentBy: user.uid,
-      sentTo: uid,
+      sender: user.uid,
       fileUri: dwnload,
       fileName: fileName,
       fileType: fileType,
       createdAt: new Date(),
       user: {
         _id: user.uid,
+        name: currenUser.displayName,
       },
     };
 
@@ -257,7 +204,7 @@ export default function Chat({route, navigation}) {
     };
     console.log({payload});
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(docid)
       .collection('messages')
       .add(payload);
@@ -269,14 +216,14 @@ export default function Chat({route, navigation}) {
 
     const mymsg = {
       _id: Date.now(),
-      sentBy: user.uid,
-      sentTo: uid,
+      sender: user.uid,
       video: dwnload,
       fileName: fileName,
       fileType: fileType,
       createdAt: new Date(),
       user: {
         _id: user.uid,
+        name: currenUser.displayName,
       },
     };
 
@@ -286,7 +233,7 @@ export default function Chat({route, navigation}) {
     };
     console.log({payload});
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(docid)
       .collection('messages')
       .add(payload);
@@ -335,20 +282,27 @@ export default function Chat({route, navigation}) {
     const lastMessage = messageArray[0];
 
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(Docid)
       .update({lastMessage: lastMessage});
   }
 
   const onSend = messageArray => {
     console.log({user});
+    if (replyMsg.replyId !== null) {
+      messageArray[0].replyMessage = {
+        replyId: replyMsg.replyId,
+        replyText: replyMsg.replyText,
+        replyTo: replyMsg.replyTo,
+      };
+    }
     const msg = messageArray[0];
     const mymsg = {
       ...msg,
-      sentBy: user.uid,
-      sentTo: uid,
+      sender: user.uid,
       createdAt: new Date(),
     };
+
     setMessages(previousMessages => GiftedChat.append(previousMessages, mymsg));
 
     const payload = {
@@ -360,10 +314,12 @@ export default function Chat({route, navigation}) {
     setLastMessage(messageArray, docid);
 
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(docid)
       .collection('messages')
       .add(payload);
+
+    setReplyMsg({replyId: null, replyText: '', replyTo: null});
   };
 
   async function onSendImage() {
@@ -372,11 +328,11 @@ export default function Chat({route, navigation}) {
     const mymsg = {
       _id: Date.now(),
       sentBy: user.uid,
-      sentTo: uid,
       image: downloadURL,
       createdAt: new Date(),
       user: {
         _id: user.uid,
+        name: currenUser.displayName,
       },
     };
 
@@ -386,7 +342,7 @@ export default function Chat({route, navigation}) {
     };
     console.log({payload});
     firestore()
-      .collection('chatrooms')
+      .collection('conversations')
       .doc(docid)
       .collection('messages')
       .add(payload);
@@ -439,17 +395,62 @@ export default function Chat({route, navigation}) {
       </View>
     );
   }
-  // function onDeleteMessage(messageIdToDelete) {
-  //   setMessages(previousState =>
-  //      previousState.messages.filter(
-  //       message => message.id !== messageIdToDelete,
-  //     ),
-  //   );
-  // }
+
+  const Reply = () => {
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+        }}>
+        <View style={{width: 5, backgroundColor: 'red'}}></View>
+        <View style={{flex: 1, flexDirection: 'column'}}>
+          <Text
+            style={{
+              color: 'red',
+              paddingLeft: 10,
+              paddingTop: 5,
+              fontWeight: 'bold',
+            }}>
+            {replyMsg?.replyTo}
+          </Text>
+          <Text
+            style={{
+              color: '#034f84',
+              paddingLeft: 10,
+              paddingTop: 5,
+              marginBottom: 2,
+            }}>
+            {replyMsg.replyText}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={{padding: 20}}
+          onPress={() =>
+            setReplyMsg({replyId: null, replyText: '', replyTo: null})
+          }>
+          <Icon name="x" type="feather" color="#0084ff" size={20} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  function onReplyMessage(pressed_message) {
+    setReplyMsg({
+      replyId: pressed_message._id,
+      replyTo: pressed_message.user.name,
+      replyText: pressed_message.text,
+    });
+
+    console.log(replyMsg);
+  }
+  function onDeleteMessage(pressed_message) {
+    setMessages(messages.filter(x => x._id !== pressed_message._id));
+  }
+
   const onLongPress = (context, pressed_message) => {
     if (pressed_message.text !== '') {
       console.log(context, pressed_message);
-      const options = ['Copy', 'Delete', 'Cancel'];
+      const options = ['Sao chép', 'Phản hồi', 'Thu hồi', 'cancel'];
       const cancelButtonIndex = options.length;
       context
         .actionSheet()
@@ -461,30 +462,36 @@ export default function Chat({route, navigation}) {
                 Clipboard.setString(pressed_message.text);
                 break;
               case 1:
-                // onDeleteMessage(pressed_message._id);
+                onReplyMessage(pressed_message);
+                break;
+              case 2:
+                onDeleteMessage(pressed_message);
                 break;
             }
           },
         );
     }
   };
+
   return (
     <>
-      <Appbar.Header>
+      <Appbar.Header style={{backgroundColor: '#0068FF'}}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
 
         <Appbar.Content title={chatWith.displayName} />
         <Appbar.Action
           icon="information"
           onPress={() =>
-            navigation.navigate('SettingChat', {chatWith: chatWith})
+            navigation.navigate('SettingChat', {
+              chatWith: chatWith,
+              docid: docid,
+            })
           }
         />
       </Appbar.Header>
       <View style={{flex: 1}}>
         <GiftedChat
           messages={messages}
-          renderUsernameOnMessage={true}
           scrollToBottomComponent={scrollToBottomComponent}
           // wrapInSafeArea={false}
           // isKeyboardInternallyHandled={false}
@@ -525,6 +532,7 @@ export default function Chat({route, navigation}) {
           scrollToBottom={true}
           user={{
             _id: user.uid,
+            name: currenUser.displayName,
           }}
           onSend={text => onSend(text)}
           renderAvatar={() => (
@@ -580,16 +588,21 @@ export default function Chat({route, navigation}) {
             );
           }}
           renderSend={renderSend}
+          renderFooter={props => {
+            if (replyMsg.replyId !== null) return Reply();
+          }}
           renderInputToolbar={props => {
             return (
-              <InputToolbar
-                {...props}
-                containerStyle={{
-                  borderTopWidth: 1.5,
-                  borderTopColor: 'purple',
-                }}
-                textInputStyle={{color: 'black', marginRight: 40}}
-              />
+              <>
+                <InputToolbar
+                  {...props}
+                  containerStyle={{
+                    borderTopWidth: 1,
+                    borderTopColor: 'purple',
+                  }}
+                  textInputStyle={{color: 'black', marginRight: 40}}
+                />
+              </>
             );
           }}
           renderCustomView={props => {
@@ -624,6 +637,36 @@ export default function Chat({route, navigation}) {
                 </View>
               );
             }
+            if (props?.currentMessage?.replyMessage?.replyId) {
+              return (
+                <>
+                  <View style={{padding: 5}}>
+                    <View
+                      style={{backgroundColor: '#005CB5', borderRadius: 15}}>
+                      <View style={{flexDirection: 'row'}}>
+                        <View
+                          style={{
+                            height: '100%',
+                            width: 10,
+                            backgroundColor: '#00468A',
+                            borderTopLeftRadius: 15,
+                            borderBottomLeftRadius: 15,
+                          }}
+                        />
+                        <View style={{flexDirection: 'column'}}>
+                          <Text style={styles.textReplyTo}>
+                            {props.currentMessage?.replyMessage?.replyTo}
+                          </Text>
+                          <Text style={styles.textReply}>
+                            {props.currentMessage?.replyMessage?.replyText}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </>
+              );
+            }
           }}
           renderMessageImage={renderMessageImage}
           renderMessageVideo={props => {
@@ -639,7 +682,7 @@ export default function Chat({route, navigation}) {
                   <Video
                     paused={false}
                     repeat={false}
-                    // controls={true}
+                    controls={true}
                     resizeMode="cover"
                     style={{
                       width: Dimensions.get('window').width / 1.4,
@@ -674,6 +717,14 @@ export default function Chat({route, navigation}) {
   );
 }
 
+const ReplyComponent = ({id}) => {
+  return (
+    <Button
+      title="Reply Compo9nent"
+      onPress={() => console.log('pressed com')}
+    />
+  );
+};
 const styles = StyleSheet.create({
   sendingContainer: {
     justifyContent: 'center',
@@ -687,5 +738,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
     textDecorationLine: 'underline',
+  },
+  textReplyTo: {
+    color: 'white',
+    paddingHorizontal: 10,
+    paddingTop: 5,
+    fontWeight: '700',
+  },
+  textReply: {
+    color: 'white',
+    paddingHorizontal: 10,
+    paddingTop: 5,
+    marginBottom: 5,
   },
 });
