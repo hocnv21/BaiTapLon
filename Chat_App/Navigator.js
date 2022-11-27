@@ -20,6 +20,7 @@ import AddGroup from './Screens/AddGroup';
 import Search from './Screens/Search';
 import SettingChat from './Screens/SettingScreen/SettingChat';
 import StorageScreen from './Screens/SettingScreen/StorageScreen';
+import information from './Screens/information';
 
 const Stack = createStackNavigator();
 const StackAuth = () => {
@@ -82,6 +83,11 @@ const StackHome = () => {
       <Stack.Screen name="Account">
         {props => <Account {...props} />}
       </Stack.Screen>
+      <Stack.Screen
+        name="info"
+        component={information}
+        options={{headerShown: false}}
+      />
     </Stack.Navigator>
   );
 };

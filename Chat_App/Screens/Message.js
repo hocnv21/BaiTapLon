@@ -31,7 +31,7 @@ export default function Message({navigation}) {
   const getChat = async () => {
     const chatsQuery = await firestore()
       .collection('conversations')
-      .where('participantArray', 'array-contains', user.email)
+      .where('participantArray', 'array-contains', user.uid)
       .get();
 
     const parsedChats = chatsQuery.docs.map(doc => ({

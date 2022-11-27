@@ -134,7 +134,7 @@ export default function Chat({route, navigation}) {
             .set({
               lastMessage: messages.length === 0 ? [] : messages[0],
               participants: [currenUserData.data(), chatWith],
-              participantArray: [currenUserData.data().email, chatWith.email],
+              participantArray: [currenUserData.data().uid, chatWith.uid],
             });
           console.log('mess', messages[0]);
           console.log('currenUser', currenUserData.data().email);

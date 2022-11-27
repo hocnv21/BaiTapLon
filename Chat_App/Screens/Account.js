@@ -13,7 +13,7 @@ import firestore from '@react-native-firebase/firestore';
 import AppContext from '../AppContext';
 import SettingCard from '../Components/SettingCard';
 
-export default function Account() {
+export default function Account({navigation}) {
   const [profile, setProfile] = useState('');
 
   const {user} = React.useContext(AppContext);
@@ -40,15 +40,7 @@ export default function Account() {
         {/* <Text style={[styles.text1, {marginLeft: 10}]}>{profile.email}</Text> */}
       </View>
 
-      <SettingCard
-        icon="verified-user"
-        tittle="Thông tin cá nhân"
-        onPress={() => {
-          auth()
-            .signOut()
-            .then(() => console.log('User signed out!'));
-        }}
-      />
+      <SettingCard icon="verified-user" tittle="Thông tin cá nhân" />
       <SettingCard
         icon="logout"
         tittle="Đăng xuất"

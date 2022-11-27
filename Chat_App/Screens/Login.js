@@ -37,7 +37,7 @@ export default function Login({navigation}) {
   };
   return (
     <View style={styles.container}>
-      <Image style={styles.logo} source={require('../assets/logoChat.png')} />
+      <Image style={styles.logo} source={require('../assets/logo.png')} />
 
       <TextInput
         placeholder="email"
@@ -78,7 +78,8 @@ const styles = StyleSheet.create({
   logo: {
     width: '70%',
     maxHeight: 200,
-    maxWidth: 300,
+    resizeMode: 'contain',
+    marginBottom: 20,
   },
   button: {
     width: '100%',

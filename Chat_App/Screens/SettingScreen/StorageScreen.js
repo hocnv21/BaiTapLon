@@ -1,11 +1,24 @@
-import {FlatList, Image, StyleSheet, Text, View} from 'react-native';
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  View,
+  RefreshControl,
+  Pressable,
+  TouchableOpacity,
+} from 'react-native';
 import React, {useEffect, useState} from 'react';
 import AppbarHeader from '../../Components/AppbarHeader';
 import storage from '@react-native-firebase/storage';
 
 export default function StorageScreen({route}) {
   const {docid} = route.params;
+  const [refreshing, setRefreshing] = React.useState(false);
   const [image, setImage] = useState([]);
+  const wait = timeout => {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+  };
 
   async function getImage() {
     const result = await storage()
@@ -19,6 +32,7 @@ export default function StorageScreen({route}) {
             .then(imageURL => {
               image.push(imageURL);
               setImage(image);
+              setRefreshing(false);
               console.log(image.length);
               console.log(image);
             });
@@ -29,6 +43,13 @@ export default function StorageScreen({route}) {
   }
   useEffect(() => {
     getImage();
+  }, []);
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    getImage();
+    wait(2000).then(() => {
+      setRefreshing(false);
+    });
   }, []);
   return (
     <>
@@ -45,11 +66,19 @@ export default function StorageScreen({route}) {
             style={{width: 200, height: 200, resizeMode: 'cover'}}
           />
         ))} */}
-        <Text>{image.length}</Text>
+        <TouchableOpacity
+          style={{
+            width: '100%',
+            height: 30,
+          }}></TouchableOpacity>
+
         <FlatList
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           data={image}
           numColumns={2}
-          renderItem={({item}) => {
+          renderItem={({item, index}) => {
             return (
               <Image
                 style={{width: 200, height: 200, resizeMode: 'cover'}}

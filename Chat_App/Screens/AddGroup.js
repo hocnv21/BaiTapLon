@@ -47,7 +47,7 @@ export default function Search({navigation}) {
   }, []);
 
   const getEmailArray = arr => {
-    const list = arr.map(item => item.email);
+    const list = arr.map(item => item.uid);
     return list;
   };
   const getAllFieldsArray = arr => {
@@ -105,7 +105,7 @@ export default function Search({navigation}) {
         lastMessage: [],
         participantArray: [
           ...getEmailArray(userAddArr),
-          currenUserData.data().email,
+          currenUserData.data().uid,
         ],
         participants: [...userAddArr, currenUserData.data()],
       })
@@ -127,6 +127,18 @@ export default function Search({navigation}) {
   };
   const onDelete = item => {
     setUserAddArr(userAddArr.filter(a => a.uid !== item.uid));
+  };
+  const getUsers = async () => {
+    const querySanp = await firestore()
+      .collection('users')
+      .where('displayName', '==', searchKey)
+      .get();
+    const result = querySanp.docs.map(docSnap => docSnap.data());
+    if (searchKey.length === 0) {
+      getAllUsers();
+    }
+    console.log(result);
+    setAllUsers(result);
   };
 
   return (
@@ -172,7 +184,7 @@ export default function Search({navigation}) {
           <SearchBarComponent
             search={searchKey}
             setSearch={setSearchKey}
-            keyPress={{}}
+            keyPress={{getUsers}}
           />
         </View>
 
